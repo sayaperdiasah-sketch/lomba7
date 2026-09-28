@@ -1,0 +1,209 @@
+/* ═══════════════════════════════════════════════════════════
+   MINDO — GLOBAL CSS (User Side)
+   Dipakai semua halaman user
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── RESET & BASE ─── */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+}
+body {
+    font-family: 'Inter', sans-serif;
+    background:
+        radial-gradient(ellipse at top left, #f7fbfa 0%, transparent 50%),
+        linear-gradient(135deg, #eef4f3 0%, #e5eae9 100%);
+}
+
+@keyframes card-slide-in {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.card-animated {
+    animation: card-slide-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+
+.card-animated:nth-child(2) { animation-delay: 60ms; }
+.card-animated:nth-child(3) { animation-delay: 120ms; }
+.card-animated:nth-child(4) { animation-delay: 180ms; }
+.card-animated:nth-child(5) { animation-delay: 240ms; }
+.card-animated:nth-child(6) { animation-delay: 300ms; }
+
+/* ─── x-cloak (cegah flash sebelum Alpine load) ─── */
+[x-cloak] { display: none !important; }
+
+/* ─── SCROLLBAR TIPIS ─── */
+.scroll-thin::-webkit-scrollbar { width: 6px; }
+.scroll-thin::-webkit-scrollbar-track { background: transparent; }
+.scroll-thin::-webkit-scrollbar-thumb {
+    background: rgba(24, 99, 105, 0.3);
+    border-radius: 3px;
+}
+.scroll-thin::-webkit-scrollbar-thumb:hover {
+    background: rgba(24, 99, 105, 0.5);
+}
+.scroll-thin-h::-webkit-scrollbar { height: 4px; }
+.scroll-thin-h::-webkit-scrollbar-track { background: transparent; }
+.scroll-thin-h::-webkit-scrollbar-thumb {
+    background: rgba(24, 99, 105, 0.25);
+    border-radius: 2px;
+}
+.scroll-thin-h::-webkit-scrollbar-thumb:hover {
+    background: rgba(24, 99, 105, 0.45);
+}
+
+/* ─── LINE CLAMP (potong teks 2 baris) ─── */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NAVBAR
+   ═══════════════════════════════════════════════════════════ */
+@keyframes nav-breathing {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.06); opacity: 0.9; }
+}
+@keyframes nav-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(255, 255, 255, 0); }
+}
+
+.nav-logo { animation: nav-breathing 4s ease-in-out infinite; }
+
+.nav-icon-btn {
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.nav-icon-btn:hover { transform: translateY(-2px) scale(1.05); }
+.nav-icon-btn.active { animation: nav-glow 2.5s ease-in-out infinite; }
+
+.nav-icon-btn .nav-tooltip {
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%) translateX(-8px);
+    background: #186369;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(24, 99, 105, 0.25);
+}
+.nav-icon-btn .nav-tooltip::before {
+    content: '';
+    position: absolute;
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 5px solid transparent;
+    border-right-color: #186369;
+}
+.nav-icon-btn:hover .nav-tooltip {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+}
+@media (max-width: 1023px) {
+    .nav-icon-btn .nav-tooltip { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PROFILE DRAWER
+   ═══════════════════════════════════════════════════════════ */
+@keyframes profile-breathe {
+    0%, 100% { box-shadow: 0 20px 60px rgba(24,99,105,0.15), 0 0 0 0 rgba(24,99,105,0.3); }
+    50% { box-shadow: 0 20px 60px rgba(24,99,105,0.15), 0 0 0 16px rgba(24,99,105,0); }
+}
+@keyframes avatar-ripple {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(2.5); opacity: 0; }
+}
+.animate-breathe { animation: profile-breathe 2s ease-in-out 2; }
+.avatar-ripple { animation: avatar-ripple 0.6s ease-out; }
+.profile-panel {
+    transform-origin: top right;
+    will-change: transform, opacity;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CARD ANIMATION (umum, dipakai beberapa halaman)
+   ═══════════════════════════════════════════════════════════ */
+@keyframes card-slide-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.card-animated {
+    animation: card-slide-in 0.3s ease-out backwards;
+}
+
+@keyframes item-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.item-anim { animation: item-in 0.3s ease-out backwards; }
+/* ═══════════════════════════════════════════════════════════
+   LOGIN EXPAND NAVBAR — Navbar slide jadi fullscreen
+   ═══════════════════════════════════════════════════════════ */
+.navbar-user {
+    transition: width 0.75s cubic-bezier(0.65, 0, 0.35, 1),
+                border-radius 0.75s ease,
+                box-shadow 0.75s ease;
+}
+
+@media (min-width: 1024px) {
+    .navbar-user.expanded {
+        width: 100vw !important;
+        border-top-right-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+        box-shadow: 0 0 80px rgba(24, 99, 105, 0.6) !important;
+    }
+
+    .navbar-user .nav-content {
+        opacity: 1;
+        transition: opacity 0.3s ease;
+    }
+
+    .navbar-user.expanded .nav-content {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .navbar-user .login-form-wrap {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transform: scale(0.7);
+        transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        pointer-events: none;
+    }
+
+    .navbar-user.expanded .login-form-wrap {
+        opacity: 1;
+        transform: scale(1);
+        pointer-events: auto;
+        transition-delay: 0.4s;
+    }
+}
+
+/* Main content blur saat login open */
+.main-content {
+    transition: filter 0.5s ease;
+}
+.main-content.blurred {
+    filter: blur(6px) brightness(0.85);
+    pointer-events: none;
+}

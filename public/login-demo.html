@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mindo - Dashboard + Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #eef4f3 0%, #e5eae9 100%);
+        }
+        [x-cloak] { display: none !important; }
+
+        /* ═══ NAVBAR ═══ */
+        .navbar {
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            width: 100px;
+            z-index: 50;
+            background: linear-gradient(180deg, #1e7378 0%, #186369 30%, #135256 70%, #0e4348 100%);
+            box-shadow: 20px 0 40px -20px rgba(24, 99, 105, 0.2);
+            transition: width 0.75s cubic-bezier(0.65, 0, 0.35, 1),
+                        box-shadow 0.75s ease,
+                        border-radius 0.75s ease;
+            overflow: hidden;
+            border-top-right-radius: 60px;
+            border-bottom-right-radius: 60px;
+        }
+        .navbar.expanded {
+            width: 100vw;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+            box-shadow: 0 0 80px rgba(24, 99, 105, 0.6);
+        }
+
+        /* ═══ NAV CONTENT ═══ */
+        .nav-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 32px 0;
+            height: 100%;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+        .navbar.expanded .nav-content {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* ═══ LOGIN FORM WRAPPER ═══ */
+        .login-wrap {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: scale(0.7);
+            transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none;
+        }
+        .navbar.expanded .login-wrap {
+            opacity: 1;
+            transform: scale(1);
+            pointer-events: auto;
+            transition-delay: 0.4s;
+        }
+
+        /* ═══ FLOATING DECOR ═══ */
+        @keyframes float-slow {
+            0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+            50% { transform: translate(30px, -30px) scale(1.15); opacity: 0.6; }
+        }
+        .float-decor { animation: float-slow 8s ease-in-out infinite; }
+
+        /* ═══ MAIN CONTENT ═══ */
+        .main-content {
+            margin-left: 100px;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 32px;
+            transition: filter 0.5s ease;
+        }
+
+        /* ═══ NAV BUTTON ═══ */
+        .nav-btn {
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .nav-btn:hover { transform: translateY(-2px) scale(1.05); }
+
+        /* ═══ NAV TOOLTIP ═══ */
+        .nav-tooltip {
+            position: absolute;
+            left: calc(100% + 12px);
+            top: 50%;
+            transform: translateY(-50%) translateX(-8px);
+            background: #186369;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(24, 99, 105, 0.25);
+            z-index: 50;
+        }
+        .nav-tooltip::before {
+            content: '';
+            position: absolute;
+            right: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 5px solid transparent;
+            border-right-color: #186369;
+        }
+        .nav-btn:hover .nav-tooltip {
+            opacity: 1;
+            transform: translateY(-50%) translateX(0);
+        }
+        @media (max-width: 1023px) {
+            .nav-tooltip { display: none; }
+        }
+
+        /* ═══ LOADING DOTS ═══ */
+        @keyframes bounce-dot {
+            0%, 80%, 100% { transform: scale(0); opacity: 0; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+        .loading-dot {
+            width: 6px; height: 6px; border-radius: 50%; background: white;
+            animation: bounce-dot 1.4s ease-in-out infinite both;
+        }
+        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        /* ═══ CARD ANIMATION ═══ */
+        @keyframes item-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .item-anim { animation: item-in 0.4s ease-out backwards; }
+
+        /* ═══ CHECKMARK ═══ */
+        @keyframes check-pop {
+            0% { transform: scale(0); }
+            60% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .check-pop { animation: check-pop 0.4s ease-out; }
+    </style>
+</head>
+<body>
+
+<div x-data="appShell()" x-init="init()">
+
+    <!-- ═══════════════════════════════════════════════════════
+         NAVBAR — normal 100px, expand jadi fullscreen saat login
+         ═══════════════════════════════════════════════════════ -->
+    <aside class="navbar" :class="{ 'expanded': loginOpen }">
+
+        <!-- Floating decoration -->
+        <div class="absolute top-20 left-1/4 w-64 h-64 rounded-full
+                    bg-white/5 blur-3xl pointer-events-none float-decor"></div>
+        <div class="absolute bottom-20 right-1/4 w-80 h-80 rounded-full
+                    bg-[#9fd6f8]/10 blur-3xl pointer-events-none float-decor"
+             style="animation-delay: -4s;"></div>
+
+        <!-- ═══ NAV CONTENT (tampil saat collapsed) ═══ -->
+        <div class="nav-content">
+
+            <!-- Logo -->
+            <div class="flex flex-col items-center gap-2">
+                <div class="w-14 h-14 rounded-2xl bg-white/15
+                            flex items-center justify-center backdrop-blur-sm">
+                    <svg viewBox="0 0 32 32" class="w-8 h-8">
+                        <circle cx="16" cy="16" r="13" fill="none" stroke="white" stroke-width="2" opacity="0.9"/>
+                        <path d="M9 16 Q 12 11, 16 16 T 23 16" fill="none"
+                              stroke="white" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="16" cy="7" r="1.5" fill="white"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Nav Menu -->
+            <nav class="flex flex-col gap-3">
+                <button class="nav-btn w-11 h-11 rounded-2xl bg-white/10 hover:bg-white/20
+                               flex items-center justify-center">
+                    <svg viewBox="0 0 24 24" class="w-5 h-5 text-white/70" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12l9-9 9 9M5 10v10h5v-5h4v5h5V10"/>
+                    </svg>
+                    <span class="nav-tooltip">Home</span>
+                </button>
+                <button class="nav-btn w-11 h-11 rounded-2xl bg-white/10 hover:bg-white/20
+                               flex items-center justify-center">
+                    <svg viewBox="0 0 24 24" class="w-5 h-5 text-white/70" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="M12 3v18M3 12h18"/>
+                    </svg>
+                    <span class="nav-tooltip">Explore</span>
+                </button>
+                <button class="nav-btn w-11 h-11 rounded-2xl bg-white/10 hover:bg-white/20
+                               flex items-center justify-center">
+                    <svg viewBox="0 0 24 24" class="w-5 h-5 text-white/70" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                    </svg>
+                    <span class="nav-tooltip">Edit</span>
+                </button>
+            </nav>
+
+            <!-- ═══ TOMBOL LOGIN / LOGOUT ═══ -->
+            <!-- Belum login: tombol Login -->
+            <button x-show="!isLoggedIn"
+                    @click="openLogin()"
+                    title="Login"
+                    class="nav-btn w-12 h-12 rounded-2xl bg-white shadow-lg
+                           flex items-center justify-center
+                           hover:scale-110 active:scale-95 transition
+                           ring-2 ring-white/30">
+                <svg viewBox="0 0 24 24" class="w-5 h-5 text-[#186369]" fill="none"
+                     stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3"/>
+                </svg>
+                <span class="nav-tooltip">Login</span>
+            </button>
+
+            <!-- Sudah login: tombol Logout -->
+            <button x-show="isLoggedIn"
+                    x-cloak
+                    @click="logout()"
+                    title="Logout"
+                    class="nav-btn w-12 h-12 rounded-2xl bg-white shadow-lg
+                           flex items-center justify-center
+                           hover:scale-110 active:scale-95 transition
+                           ring-2 ring-white/30">
+                <svg viewBox="0 0 24 24" class="w-5 h-5 text-[#186369]" fill="none"
+                     stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+                </svg>
+                <span class="nav-tooltip">Logout</span>
+            </button>
+        </div>
+
+        <!-- ═══ LOGIN FORM (muncul saat expanded) ═══ -->
+        <div class="login-wrap">
+
+            <!-- Close button -->
+            <button type="button"
+                    @click="closeLogin()"
+                    class="absolute top-6 right-6 z-20
+                           w-11 h-11 rounded-full
+                           bg-white/10 hover:bg-white/20
+                           backdrop-blur-sm border border-white/20
+                           flex items-center justify-center
+                           transition active:scale-90">
+                <svg viewBox="0 0 24 24" class="w-5 h-5 text-white" fill="none"
+                     stroke="currentColor" stroke-width="2.5"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+            </button>
+
+            <!-- Form -->
+            <form @submit.prevent="submitLogin()"
+                  class="relative z-10
+                         w-[380px] max-w-[calc(100vw-3rem)]
+                         bg-white rounded-[32px] p-8
+                         shadow-2xl border border-white/20">
+
+                <!-- Header -->
+                <div class="text-center mb-7">
+                    <div class="w-16 h-16 rounded-2xl bg-[#186369]/10
+                                flex items-center justify-center mx-auto mb-4">
+                        <svg viewBox="0 0 32 32" class="w-9 h-9">
+                            <circle cx="16" cy="16" r="13" fill="none" stroke="#186369" stroke-width="2"/>
+                            <path d="M9 16 Q 12 11, 16 16 T 23 16" fill="none"
+                                  stroke="#186369" stroke-width="2" stroke-linecap="round"/>
+                            <circle cx="16" cy="7" r="1.5" fill="#186369"/>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-[#186369]">Selamat Datang</h2>
+                    <p class="text-xs text-[#186369]/60 mt-1">
+                        Login untuk melanjutkan ke Mindo
+                    </p>
+                </div>
+
+                <!-- Fields -->
+                <div class="space-y-4">
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1.5">Email</label>
+                        <input type="email" required
+                               x-model="email"
+                               placeholder="nama@email.com"
+                               class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl
+                                      focus:outline-none focus:border-[#186369]
+                                      text-sm transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1.5">Password</label>
+                        <input type="password" required
+                               x-model="password"
+                               placeholder="••••••••"
+                               class="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl
+                                      focus:outline-none focus:border-[#186369]
+                                      text-sm transition">
+                    </div>
+
+                    <!-- Error -->
+                    <div x-show="error" x-transition
+                         class="text-[11px] text-red-500 bg-red-50 border border-red-200
+                                rounded-xl px-3 py-2"
+                         x-text="error"></div>
+
+                    <!-- Submit -->
+                    <button type="submit"
+                            :disabled="loading"
+                            class="w-full py-3 bg-[#186369] text-white font-bold rounded-xl
+                                   hover:opacity-90 transition active:scale-95
+                                   disabled:opacity-70 disabled:cursor-not-allowed
+                                   flex items-center justify-center gap-2">
+                        <template x-if="!loading">
+                            <span>Login</span>
+                        </template>
+                        <template x-if="loading">
+                            <div class="flex items-center gap-1.5">
+                                <span class="loading-dot"></span>
+                                <span class="loading-dot"></span>
+                                <span class="loading-dot"></span>
+                            </div>
+                        </template>
+                    </button>
+
+                    <!-- Back -->
+                    <button type="button" @click="closeLogin()"
+                            class="w-full text-xs font-bold text-gray-400
+                                   hover:text-[#186369] transition py-2">
+                        ← Kembali
+                    </button>
+                </div>
+            </form>
+        </div>
+    </aside>
+
+
+    <!-- ═══════════════════════════════════════════════════════
+         MAIN CONTENT — DASHBOARD
+         ═══════════════════════════════════════════════════════ -->
+    <main class="main-content">
+
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+                <h1 class="text-3xl font-bold text-[#186369]"
+                    x-text="isLoggedIn ? 'Halo, Putranda! 👋' : 'Halo, Selamat Datang!'"></h1>
+                <p class="text-sm text-[#186369]/70 mt-1"
+                   x-text="isLoggedIn ? 'Selamat datang kembali' : 'Silakan login untuk pengalaman penuh'"></p>
+            </div>
+
+            <!-- Status Badge -->
+            <div class="px-4 py-2 rounded-2xl border-2 transition-all"
+                 :class="isLoggedIn
+                    ? 'bg-emerald-50 border-emerald-200'
+                    : 'bg-amber-50 border-amber-200'">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full animate-pulse"
+                          :class="isLoggedIn ? 'bg-emerald-500' : 'bg-amber-500'"></span>
+                    <span class="text-xs font-bold"
+                          :class="isLoggedIn ? 'text-emerald-700' : 'text-amber-700'"
+                          x-text="isLoggedIn ? 'Sudah Login' : 'Guest Mode'"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hero Card -->
+        <div class="bg-white rounded-[32px] p-6 border border-gray-100 mb-5 item-anim">
+            <h2 class="text-lg font-bold text-[#186369] mb-3">
+                <span x-show="!isLoggedIn">🔒 Fitur Terkunci</span>
+                <span x-show="isLoggedIn">✨ Selamat Datang di Mindo</span>
+            </h2>
+            <p class="text-sm text-[#186369]/60 leading-relaxed mb-4"
+               x-text="isLoggedIn
+                    ? 'Kamu sudah login. Sekarang bisa akses semua fitur: Jurnal, To Do List, Konsultasi, dan Tes Mental.'
+                    : 'Login dulu untuk membuka fitur Jurnal, To Do List, Konsultasi, dan Tes Mental.'"></p>
+
+            <button x-show="!isLoggedIn"
+                    @click="openLogin()"
+                    class="px-6 py-2.5 bg-[#186369] text-white font-bold rounded-xl text-sm
+                           hover:opacity-90 transition active:scale-95">
+                Login Sekarang
+            </button>
+
+            <div x-show="isLoggedIn" x-cloak x-transition
+                 class="flex items-center gap-2 text-emerald-600 font-bold text-sm">
+                <svg viewBox="0 0 24 24" class="w-5 h-5 check-pop" fill="none"
+                     stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 13l4 4L19 7"/>
+                </svg>
+                <span>Akses penuh terbuka</span>
+            </div>
+        </div>
+
+        <!-- Grid Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+            <!-- Card 1 -->
+            <div class="bg-white rounded-3xl p-6 border border-gray-100 item-anim"
+                 style="animation-delay: 100ms">
+                <div class="w-12 h-12 rounded-2xl bg-[#186369]/10
+                            flex items-center justify-center mb-4">
+                    <svg viewBox="0 0 24 24" class="w-6 h-6 text-[#186369]" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 4a2 2 0 012-2h12a2 2 0 012 2v18l-4-2-4 2-4-2-4 2V4z"/>
+                    </svg>
+                </div>
+                <h3 class="font-bold text-[#186369] mb-1">Jurnal</h3>
+                <p class="text-xs text-[#186369]/60">
+                    Catat aktivitas harian kamu
+                </p>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="bg-white rounded-3xl p-6 border border-gray-100 item-anim"
+                 style="animation-delay: 200ms">
+                <div class="w-12 h-12 rounded-2xl bg-[#c0a05f]/10
+                            flex items-center justify-center mb-4">
+                    <svg viewBox="0 0 24 24" class="w-6 h-6 text-[#c0a05f]" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V6a2 2 0 012-2z"/>
+                    </svg>
+                </div>
+                <h3 class="font-bold text-[#186369] mb-1">To Do List</h3>
+                <p class="text-xs text-[#186369]/60">
+                    Atur jadwal dan aktivitas
+                </p>
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<script>
+    function appShell() {
+        return {
+            /* ═══ STATE ═══ */
+            loginOpen: false,
+            isLoggedIn: false,
+            loading: false,
+            error: '',
+            email: '',
+            password: '',
+
+            /* ═══ INIT ═══ */
+            init() {
+                /* Cek login state dari localStorage */
+                const saved = localStorage.getItem('mindo_logged_in');
+                if (saved === 'true') {
+                    this.isLoggedIn = true;
+                    this.email = localStorage.getItem('mindo_email') || '';
+                }
+            },
+
+            /* ═══ OPEN LOGIN ═══ */
+            openLogin() {
+                this.loginOpen = true;
+                this.error = '';
+            },
+
+            /* ═══ CLOSE LOGIN ═══ */
+            closeLogin() {
+                this.loginOpen = false;
+                this.error = '';
+            },
+
+            /* ═══ SUBMIT LOGIN (simulasi) ═══ */
+            submitLogin() {
+                this.loading = true;
+                this.error = '';
+
+                /* Simulasi request ke server */
+                setTimeout(() => {
+                    this.loading = false;
+
+                    /* Validasi simple */
+                    if (!this.email || !this.password) {
+                        this.error = '❌ Email dan password wajib diisi';
+                        return;
+                    }
+
+                    if (this.password.length < 4) {
+                        this.error = '❌ Password minimal 4 karakter';
+                        return;
+                    }
+
+                    /* ═══ LOGIN SUKSES (frontend only) ═══ */
+                    this.isLoggedIn = true;
+                    localStorage.setItem('mindo_logged_in', 'true');
+                    localStorage.setItem('mindo_email', this.email);
+
+                    /* Tutup overlay, navbar slide back */
+                    this.loginOpen = false;
+
+                    /* Reset form */
+                    setTimeout(() => {
+                        this.email = '';
+                        this.password = '';
+                    }, 500);
+
+                }, 1200);
+            },
+
+            /* ═══ LOGOUT ═══ */
+            logout() {
+                if (!confirm('Yakin mau logout?')) return;
+
+                this.isLoggedIn = false;
+                localStorage.removeItem('mindo_logged_in');
+                localStorage.removeItem('mindo_email');
+            },
+        }
+    }
+</script>
+
+</body>
+</html>
